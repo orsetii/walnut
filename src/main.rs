@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(asm, abi_efiapi, llvm_asm, bool_to_option)]
-#![feature(panic_info_message)]
+#![feature(panic_info_message, alloc_error_handler)]
 #![feature(abi_x86_interrupt)]
 #![allow(clippy::missing_safety_doc)]
 pub mod acpi;
@@ -14,38 +14,13 @@ mod efi;
 mod error;
 pub mod mm;
 pub mod paging;
+
+
 pub use crate::arch::idt;
 pub mod serial;
 
-
-use x86_64::{VirtAddr, structures::paging::{Translate, Page}};
-pub fn kmain(mut memory_map: mm::PhysicalMemoryMap) {
-    arch::idt::init();
-    let mut mapper = paging::init();
-    let mut fa = paging::EmptyFrameAllocator;
-
-    let page = Page::containing_address(VirtAddr::zero());
-    paging::create_example_mapping(page, &mut mapper, &mut fa);
-    // write the string `New!` to the screen through the new mapping
-    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
-    unsafe { page_ptr.offset(400).write_volatile(0x_f021_f077_f065_f04e)};
-
-    let addresses = [
-        // the identity-mapped vga buffer page
-        0xb8000,
-        // some code page
-        0x201008,
-        // some stack page
-        0x0100_0020_1a10,
-        // virtual address mapped to physical address 0
-       memory_map.map.largest().start, 
-    ];
-
-    for &address in &addresses {
-        let virt = VirtAddr::new(address);
-        let phys = unsafe { mapper.translate_addr(virt) };
-        println!("{:?} -> {:?}", virt, phys);
-    }
+pub fn kmain(mut memory_map: mm::RangeSet) {
+    paging::init(memory_map);
     panic!("reached end of kmain()");
 }
 
@@ -60,4 +35,9 @@ fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
     }
     dump_state!();
     loop {}
+}
+
+#[alloc_error_handler]
+fn alloc_error_handler(layout: alloc::alloc::Layout) -> ! {
+    panic!("allocation error: {:?}", layout)
 }

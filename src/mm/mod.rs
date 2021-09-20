@@ -8,9 +8,12 @@ pub mod phys;
 pub mod rangeset;
 pub mod virt;
 
-pub use phys::{readp, readpu, writep, writepu, PhysAddr, PhysSlice, PhysicalMemoryMap};
+use core::sync::atomic::AtomicPtr;
+
+pub use phys::{readp, readpu, writep, writepu, PhysAddr, PhysSlice };
 pub use rangeset::{Range, RangeSet};
 pub use virt::{readv, readvu, writev, writevu, VirtAddr};
+
 
 /// Align address downwards.
 ///

@@ -400,10 +400,10 @@ pub fn exit_boot_services(handle: EfiHandle) -> PhysicalMemoryMap {
     // destroy the EFI system table
     EFI_SYSTEM_TABLE.store(core::ptr::null_mut(), Ordering::SeqCst);
 
-    PhysicalMemoryMap::new(rs)
+    rs
 }
 
-use crate::mm::{PhysAddr, PhysicalMemoryMap};
+use crate::mm::PhysAddr;
 
 pub fn get_acpi_table() -> Option<PhysAddr> {
     // ACPI 2.0 GUID

@@ -1,20 +1,6 @@
 use super::RangeSet;
 use core::mem::size_of;
 
-#[derive(Clone, Copy, Debug)]
-pub struct PhysicalMemoryMap {
-    pub map: RangeSet,
-    pub start: u64,
-}
-
-impl PhysicalMemoryMap {
-    pub fn new(map: RangeSet) -> Self {
-        let mut s = Self { map, start: 0 };
-        s.start = s.map.largest().start;
-        s
-    }
-}
-
 /// Represents a physical address
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 #[repr(transparent)]
