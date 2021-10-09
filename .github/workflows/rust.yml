@@ -17,16 +17,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install nightly and misc components 
-      run: rustup install nightly && rustup target add aarch64-unknown-none-softfloat && rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu && rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
-    - name: Install QEMU
-      run: sudo apt install qemu-system-arm
-    - name: Install Cargo Deps
-      run: cargo install cargo-make cargo-binutils
-    - name: Build
-      run: cargo +nightly make rpi4
-    - name: Build RPI 4 Docs
-      run: cargo +nightly make rpi4doc
-#    - name: Run unit tests
-#      run: cargo +nightly test --lib
-#    - name: Run integration tests
-#      run: cargo +nightly test --test '*'
+      run: rustup target add aarch64-unknown-none-softfloat
+    - name: Build for Raspberry Pi 4
+      run: make
+    - name: Build for Raspberry Pi 3
+      run: BSP=rpi3 make
