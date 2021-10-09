@@ -26,8 +26,6 @@ jobs:
       run: cargo +nightly make rpi4
     - name: Build RPI 4 Docs
       run: cargo +nightly make rpi4doc
-    - name: Lint
-      run: cargo +nightly clippy 
 #    - name: Run unit tests
 #      run: cargo +nightly test --lib
 #    - name: Run integration tests
