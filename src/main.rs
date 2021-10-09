@@ -8,12 +8,15 @@
 #![feature(format_args_nl)]
 #![feature(global_asm)]
 #![feature(panic_info_message)]
+#![feature(trait_alias)]
 
 mod bsp;
 mod console;
 mod cpu;
 mod panic_wait;
 mod print;
+mod sync;
+mod io;
 
 /// Init the kernel
 ///
@@ -21,10 +24,15 @@ mod print;
 ///
 /// - Only a single core must be active and running this function.
 unsafe fn kernel_init() -> ! {
+    use console::interface::Statistics;
+
     println!("[0] Hello from Rust!");
 
-    panic!("Stopping...")
+    println!(
+        "[1] Chars written: {}",
+        bsp::console::console().chars_written()
+    );
+
+    println!("[2] Stopping here.");
+    cpu::wait_forever()
 }
-
-
-Quickly create and run optimised Windows, macOS and Linux desktop virtual machines.

@@ -11,6 +11,7 @@ args = ["doc", "--target=aarch64-unknown-none-softfloat", "--features=rpi4", "--
 
 [tasks.qemu]
 script = { file = "scripts/qemu-rpi-run.sh" }
+dependencies = ["rpi4"]
 
 
 
