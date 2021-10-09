@@ -25,3 +25,6 @@ unsafe fn kernel_init() -> ! {
 
     panic!("Stopping...")
 }
+
+
+Quickly create and run optimised Windows, macOS and Linux desktop virtual machines.

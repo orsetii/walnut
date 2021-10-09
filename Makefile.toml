@@ -4,6 +4,10 @@ env = { "RUSTFLAGS" = "-C link-arg=-Tsrc/bsp/rpi4/link.ld -C target-cpu=cortex-a
 command = "cargo"
 args = ["rustc", "--target=aarch64-unknown-none-softfloat", "--features=rpi4"]
 
+[tasks.rpi4doc]
+env = { "RUSTFLAGS" = "-C link-arg=-Tsrc/bsp/rpi4/link.ld -C target-cpu=cortex-a53 -D warnings -D missing_docs" } 
+command = "cargo"
+args = ["doc", "--target=aarch64-unknown-none-softfloat", "--features=rpi4", "--open"]
 
 [tasks.qemu]
 script = { file = "scripts/qemu-rpi-run.sh" }
