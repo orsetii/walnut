@@ -1,5 +1,8 @@
 target/
 *.img
+build/
+**/target/
+
 
 
 

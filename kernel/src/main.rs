@@ -5,7 +5,6 @@
 
 mod io;
 mod lang;
-use io::print;
 
 use bootloader::{entry_point, BootInfo};
 
@@ -15,6 +14,10 @@ fn main(boot_info: &'static BootInfo) -> ! {
 
     io::serial::init();
 
-    print!("hi");
-    loop {}
+    println!("{:#x?}", boot_info);
+
+
+
+
+    panic!("END OF KERNEL MAIN");
 }

@@ -58,7 +58,6 @@ fn efi_main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
         .address;
     info!("smbios: {:?}", smbios_addr);
 
-    // 获取memory map
     let max_mmap_size = boot_services.memory_map_size();
     let mmap_storage = Box::leak(vec![0; max_mmap_size.map_size * 2].into_boxed_slice());
     let mmap_iter = boot_services
@@ -75,7 +74,7 @@ fn efi_main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
     unsafe {
         Cr0::update(|f| f.remove(Cr0Flags::WRITE_PROTECT));
         Efer::update(|f| f.insert(EferFlags::NO_EXECUTE_ENABLE));
-    } // 根页表是只读的，禁用写入保护
+    } 
 
     let (elf, kernel_entry) = load_kernel(boot_services);
 
@@ -91,27 +90,23 @@ fn efi_main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status
 
     unsafe {
         Cr0::update(|f| f.insert(Cr0Flags::WRITE_PROTECT));
-    } // 恢复写入保护
+    } 
 
     let resolution: (usize, usize) = (1280, 720);
     let graphic_info = init_graphic(boot_services, None);// Option::from(resolution));
 
-    // 创造一个128宽度的Vec
-    // 必须在退出boot_services之前创建，否则退出后无法正常分配alloc
-    let mut memory_map = Vec::with_capacity(128);
-
-    // 退出启动服务,启动kernel
-    info!("Leaving Boot Services");
+    const MEMORY_MAP_MAX_SIZE: usize = 512;
+    let mut memory_map = Vec::with_capacity(MEMORY_MAP_MAX_SIZE);
+    
     let (_rt, mmap_iter) = system_table
         .exit_boot_services(image_handle, mmap_storage)
         .expect("Failed to exit boot services");
-panic!();
 
-    for desc in mmap_iter {
+    for (i, desc) in mmap_iter.enumerate() {
         memory_map.push(desc);
-    }
 
-    // construct BootInfo
+        if i == (MEMORY_MAP_MAX_SIZE -1)  { break; }
+    }
     let boot_info = BootInfo {
         memory_map,
         physical_memory_offset: PHYSICAL_MEMORY_OFFSET,
@@ -120,7 +115,7 @@ panic!();
         acpi2_rsdp_addr: acpi2_addr as u64,
     };
 
-    // 将bootinfo传递给内核,并跳转到内核
+    // Finally, jump into the kernel
     jump_to_entry(&boot_info, kernel_entry);
 }
 
