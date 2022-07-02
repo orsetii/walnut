@@ -12,7 +12,7 @@ echo "Fully Built. Running Walnut via QEMU..."
 
 mkdir -p build/vmroot/EFI/{kernel,Boot}
 
-cp ./target/amd64/release/kernel build/vmroot/EFI/kernel/kernel.elf
+cp ./target/amd64/release/kernel build/vmroot/kernel.elf
 cp ./target/x86_64-unknown-uefi/release/bootloader.efi build/vmroot/EFI/Boot/BootX64.efi
 
 
