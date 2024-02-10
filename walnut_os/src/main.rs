@@ -3,19 +3,17 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(walnut_os::testing::test_runner)]
 #![reexport_test_harness_main = "test_main"]
-pub use walnut_os::testing::test_runner;
-use x86_64::instructions::interrupts::int3;
 
 use core::panic::PanicInfo;
-use walnut_os::{interrupts::init_idt, println, serial_println};
+pub use walnut_os::testing::test_runner;
+use walnut_os::{println, serial_println};
 
+#[allow(unconditional_panic)]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
-    serial_println!("Hello World{}", "!");
+    serial_println!("Walnut Initializing");
     println!("Walnut Initializing");
     walnut_os::init();
-
-    int3();
 
     #[cfg(test)]
     test_main();

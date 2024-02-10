@@ -1,11 +1,16 @@
-use crate::println;
+use core::arch::asm;
+
+use idt::Idt;
 use lazy_static::lazy_static;
-use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
+
+use crate::{println, serial_println};
+
+pub mod idt;
 
 lazy_static! {
-    static ref IDT: InterruptDescriptorTable = {
-        let mut idt = InterruptDescriptorTable::new();
-        idt.breakpoint.set_handler_fn(breakpoint_interrupt_handler);
+    static ref IDT: Idt = {
+        let mut idt = Idt::new();
+        idt.set_handler(0, divide_by_zero_handler);
         idt
     };
 }
@@ -14,11 +19,31 @@ pub fn init_idt() {
     IDT.load();
 }
 
-extern "x86-interrupt" fn breakpoint_interrupt_handler(stack_frame: InterruptStackFrame) {
-    println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
+extern "C" fn divide_by_zero_handler() -> ! {
+    serial_println!("EXCEPTION: DIVIDE BY ZERO");
+    println!("EXCEPTION: DIVIDE BY ZERO");
+    loop {}
 }
 
 #[test_case]
 fn test_breakpoint_exception() {
-    x86_64::instructions::interrupts::int3();
+    unsafe {
+        // TODO Impl handler
+        // asm!("int3", options(nomem, nostack));
+    }
+}
+
+#[test_case]
+fn test_divide_by_zero_exception() {
+    unsafe {
+        // Move the dividend (4) into the RAX register
+        // Zero out the RDX register (important for division)
+        // Divide RAX by RDX (zero), triggering the fault
+        asm!(
+            "mov rax, 4   
+            xor rdx, rdx 
+            div rdx",
+            options(nomem, nostack)
+        );
+    }
 }
