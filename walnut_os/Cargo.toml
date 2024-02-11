@@ -16,6 +16,7 @@ x86_64 = "0.14.2"
 uart_16550 = "0.2.0"
 bit_field = "0.10.2"
 
+
 [dependencies.lazy_static]
 version = "1.0"
 features = ["spin_no_std"]
@@ -30,6 +31,8 @@ run-command = [
 	"isa-debug-exit,iobase=0xf4,iosize=0x04",
 	"-serial",
 	"stdio",
+	"-display",
+	"none",
 ]
 test-args = ["-display", "none"]
 test-success-exit-code = 33 # (0x10 << 1) | 1

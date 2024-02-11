@@ -15,16 +15,22 @@ pub extern "C" fn _start() -> ! {
     println!("Walnut Initializing");
     walnut_os::init();
 
+    fn stack_overflow() {
+        stack_overflow(); // for each recursion, the return address is pushed
+    }
+
+    // trigger a stack overflow
+    stack_overflow();
+
+    serial_println!("Entering OS loop");
     #[cfg(test)]
     test_main();
-
-    println!("Entering OS loop");
     loop {}
 }
 
 /// This function is called on panic.
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    serial_println!("{}", info);
+    serial_println!("PANIC: {}", info);
     loop {}
 }

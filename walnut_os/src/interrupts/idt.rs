@@ -11,6 +11,7 @@ impl Idt {
     pub fn set_handler(&mut self, entry_idx: u8, handler: HandlerFunc) {
         self.0[entry_idx as usize] = Entry::new(segmentation::cs(), handler);
     }
+
     pub fn load(&'static self) {
         use core::mem::size_of;
         use x86_64::instructions::tables::{lidt, DescriptorTablePointer};
