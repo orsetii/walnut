@@ -16,13 +16,17 @@ impl SerialPort {
     fn line_control_register(&self) -> bool {
         true
     }
+
+    fn set_baud_rate_115200() {}
 }
 
+#[repr(transparent)]
 enum DivisorLatchAccessBitState {
-    Disabled,
-    Enabled,
+    Disabled = false,
+    Enabled = true,
 }
 
+#[repr(transparent)]
 enum AccessMode {
     Read,
     Write,
@@ -112,27 +116,29 @@ enum Port {
 }
 
 impl Port {
-    pub fn from_info(
-        port_offset: u8,
-        access_mode: AccessMode,
-        dlab_state: DivisorLatchAccessBitState,
-    ) -> Port {
-        match port_offset {
-            0 => port_for_io_port_0(access_mode, dlab_state),
-            _ => todo!(),
-        }
-    }
+    pub fn byte(self, base_addr: usize) -> usize {
+        match self {
+            Self::ReceiverBuffer
+            | Self::TransmitterHolding
+            | Self::DivisorLatchLsbRead
+            | Self::DivisorLatchLsbWrite => base_addr + 0,
 
-    fn port_for_io_port_0(access_mode: AccessMode, dlab_state: DivisorLatchAccessBitState) -> Port {
-        match access_mode {
-            AccessMode::Read => match dlab_state {
-                DivisorLatchAccessBitState::Disabled => Port::ReceiverBuffer,
-                DivisorLatchAccessBitState::Enabled => Port::DivisorLatchMsbRead,
-            },
-            AccessMode::Write => match dlab_state {
-                DivisorLatchAccessBitState::Disabled => Port::TransmitterHolding,
-                DivisorLatchAccessBitState::Enabled => Port::DivisorLatchLsbWrite,
-            },
+            Self::InterruptEnableRead
+            | Self::InterruptEnableWrite
+            | Self::DivisorLatchMsbRead
+            | Self::DivisorLatchMsbWrite => base_addr + 1,
+
+            Self::InterruptIdentificationReadDisabled
+            | Self::FifoControlDisabled
+            | Self::InterruptIdentificationReadEnabled
+            | Self::FifoControlEnabled => base_addr + 1,
+
+            Self::LineControlReadDisabled
+            | Self::LineControlWriteDisabled
+            | Self::LineControlReadEnabled
+            | Self::LineControlWriteEnabled => base_addr + 3,
+
+            _ => todo!(),
         }
     }
 }
