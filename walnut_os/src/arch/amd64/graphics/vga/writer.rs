@@ -108,7 +108,7 @@ impl core::fmt::Write for Writer {
 #[macro_export]
 macro_rules! println {
     () => (print!("\n"));
-    ($($arg:tt)*) => (print!("{}\n", format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::arch::amd64::graphics::vga::_print(format_args!("{}\n", format_args!($($arg)*))));
 }
 
 #[macro_export]
