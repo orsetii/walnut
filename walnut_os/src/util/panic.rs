@@ -1,13 +1,14 @@
 #[cfg(not(test))]
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    crate::println!("PANIC: {}", info);
+    crate::vga_println!("PANIC: {:#?}", info);
+    crate::println!("PANIC: {:#?}", info);
     loop {}
 }
 
 #[cfg(test)]
-#[panic_handler]
-fn test_panic(info: &core::panic::PanicInfo) -> ! {
-    crate::println!("PANIC: {:#x?}", info);
+pub fn test_panic_handler(info: &core::panic::PanicInfo) -> ! {
+    crate::vga_println!("PANIC: {:#?}", info);
+    crate::println!("PANIC: {:#?}", info);
     loop {}
 }

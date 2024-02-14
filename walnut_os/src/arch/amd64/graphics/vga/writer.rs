@@ -76,6 +76,17 @@ impl Writer {
         }
     }
 
+    #[allow(dead_code)]
+    #[inline]
+    fn read_char(&mut self, row: usize, col: usize) -> ScreenChar {
+        unsafe {
+            self.buffer().chars[row]
+                .as_mut_ptr()
+                .add(col)
+                .read_volatile()
+        }
+    }
+
     fn new_line(&mut self) {
         for row in 1..BUFFER_HEIGHT {
             for col in 0..BUFFER_WIDTH {
@@ -106,13 +117,13 @@ impl core::fmt::Write for Writer {
 }
 
 #[macro_export]
-macro_rules! println {
+macro_rules! vga_println {
     () => (print!("\n"));
     ($($arg:tt)*) => ($crate::arch::amd64::graphics::vga::_print(format_args!("{}\n", format_args!($($arg)*))));
 }
 
 #[macro_export]
-macro_rules! print {
+macro_rules! vga_print {
     ($($arg:tt)*) => ($crate::arch::amd64::graphics::vga::_print(format_args!($($arg)*)));
 }
 
@@ -120,4 +131,22 @@ macro_rules! print {
 pub fn _print(args: core::fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
+}
+
+#[test_case]
+fn test_println_many() {
+    // prints every ascii char, 256 times
+    for _ in 0..255 {
+        crate::vga_println!(" !\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{{}}~'");
+    }
+}
+
+#[test_case]
+fn test_println_output() {
+    let s = "Some test string that fits on a single line";
+    crate::vga_println!("{}", s);
+    for (i, c) in s.chars().enumerate() {
+        let screen_char = WRITER.lock().read_char(BUFFER_HEIGHT - 2, i);
+        assert_eq!(char::from(screen_char.ascii_character), c);
+    }
 }

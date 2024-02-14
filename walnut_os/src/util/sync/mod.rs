@@ -3,6 +3,8 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+pub mod spinlock;
+
 pub struct Guard<'a, T> {
     lock: &'a SpinLock<T>,
 }
