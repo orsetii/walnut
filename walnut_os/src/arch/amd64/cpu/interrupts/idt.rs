@@ -3,23 +3,27 @@ use core::{arch::asm, mem::size_of};
 use entry::Entry;
 
 use entry::SegmentSelector;
+
+use crate::println;
 mod entry;
 
-lazy_static::lazy_static! {
-    pub static ref IDT: Idt = {
-        let mut idt = Idt::new();
-        idt.set_handler_fn(3, super::breakpoint_handler);
-        idt.set_handler_fn(0, super::div_by_zero_handler);
-        idt
-    };
-}
 
+
+
+#[derive(Debug)]
+#[repr(C)]
+#[repr(align(16))]
+pub struct Idt {
+   pub divide_by_zero: Entry,
+    entries: [Entry; 256-1],
+}
 
 
 impl Idt {
     pub fn new() -> Self {
    Idt {
-        entries: [Entry::missing(); 16],
+       divide_by_zero: Entry::missing(),
+        entries: [Entry::missing(); 256 - 1],
     }
     }
     pub fn load(&self) {
@@ -28,19 +32,7 @@ impl Idt {
         }
     }
 
-    pub fn set_handler_fn(&mut self, index: u8, handler: HandlerFunc) {
-        self.entries[index as usize] = Entry::new(Self::get_cs(), handler);
-    }
-
-     #[inline]
-        fn get_cs() -> SegmentSelector {
-            let segment: u16;
-            unsafe {
-                asm!("mov {0:x}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
-            }
-            SegmentSelector(segment)
-        }
-
+    
     pub unsafe fn lidt(&self) {
         let idtr = Idtr {
             base: self as *const _ as u64,
@@ -53,13 +45,6 @@ impl Idt {
         }
     }
 }
-
-#[derive(Debug)]
-#[repr(align(0x10))]
-pub struct Idt {
-    entries: [Entry; 16],
-}
-
 
 
 

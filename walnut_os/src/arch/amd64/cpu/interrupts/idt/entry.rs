@@ -1,8 +1,13 @@
+use crate::println;
+
+use super::HandlerFunc;
+
 #[derive(Clone, Copy, Debug)]
 #[repr(C, packed)]
 pub struct Entry {
     isr_ptr_low: u16,
     kernel_cs: SegmentSelector,
+    ist_offset: u8,
     attributes: EntryAttributes,
     isr_ptr_mid: u16,
     isr_ptr_high: u32,
@@ -17,6 +22,7 @@ impl Entry {
             isr_ptr_mid: (addr >> 16) as u16,
             isr_ptr_high: (addr >> 32) as u32,
             kernel_cs: segment,
+            ist_offset: 0x0,
             attributes: EntryAttributes::new(),
             _reserved: 0,
         };
@@ -27,7 +33,8 @@ impl Entry {
         Self {
             isr_ptr_low: 0,
             kernel_cs: SegmentSelector(0),
-            attributes: EntryAttributes::base(),
+            ist_offset: 0,
+            attributes: EntryAttributes(0xE),
             isr_ptr_mid: 0,
             isr_ptr_high: 0,
             _reserved: 0,
@@ -36,24 +43,34 @@ impl Entry {
     pub fn is_empty(e: Self) -> bool {
         e.isr_ptr_high == 0 && e.isr_ptr_mid == 0 && e.isr_ptr_low == 0
     }
+    #[inline]
+    fn get_cs() -> SegmentSelector {
+        let segment: u16;
+        unsafe {
+            core::arch::asm!("mov {0:x}, cs", out(reg) segment, options(nomem, nostack, preserves_flags));
+        }
+        println!("Got CS segment: {}", segment);
+        SegmentSelector(segment)
+    }
+
+    pub fn set_handler_fn(mut self, handler: HandlerFunc) {
+        self = Entry::new(Self::get_cs(), handler);
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
 #[repr(transparent)]
-struct EntryAttributes(u16);
+struct EntryAttributes(u8);
 
 impl EntryAttributes {
     pub fn new() -> Self {
-        let mut ea = Self::base();
-        ea.set_bits(0b111, 9..12);
-        ea.set_present(true).disable_interrupts(false);
-        ea
+        Self(0x8E)
     }
 
     /// A zero-ed `EntryAttributes`, with only the
     /// *must-set* bits set.
     const fn base() -> Self {
-        Self(0x0)
+        Self(0xE)
     }
 
     pub fn set_present(&mut self, present: bool) -> &mut Self {
@@ -66,18 +83,18 @@ impl EntryAttributes {
         self
     }
 
-    pub fn set_priv_level(&mut self, ring_lvl: u16) -> &mut Self {
+    pub fn set_priv_level(&mut self, ring_lvl: u8) -> &mut Self {
         self.set_bits(ring_lvl, 13..15);
         self
     }
 
-    pub fn set_stack_index(&mut self, idx: u16) -> &mut Self {
+    pub fn set_stack_index(&mut self, idx: u8) -> &mut Self {
         self.set_bits(idx, 0..3);
         self
     }
 
-    const fn set_bit(&mut self, val: bool, pos: u16) {
-        assert!(pos < 16, "Bit position out of range for u16");
+    const fn set_bit(&mut self, val: bool, pos: u8) {
+        assert!(pos < 8, "Bit position out of range for u8");
         let mask = 1 << pos;
 
         if val {
@@ -88,20 +105,20 @@ impl EntryAttributes {
         }
     }
 
-    const fn get_bit(&self, pos: u16) -> bool {
-        assert!(pos < 16, "Bit position out of range for u16");
+    const fn get_bit(&self, pos: u8) -> bool {
+        assert!(pos < 8, "Bit position out of range for u8");
         let mask = 1 << pos;
 
         (self.0 & mask) != 0
     }
 
-    fn set_bits(&mut self, bits: u16, range: core::ops::Range<u16>) {
+    fn set_bits(&mut self, bits: u8, range: core::ops::Range<u8>) {
         assert!(
-            range.start < 16 && range.end <= 16,
-            "Invalid bit range for u16"
+            range.start < 8 && range.end <= 8,
+            "Invalid bit range for u8"
         );
         assert!(
-            range.end - range.start <= 16,
+            range.end - range.start <= 8,
             "Range too large for bits parameter"
         );
 
