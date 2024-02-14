@@ -13,6 +13,7 @@ test = false
 
 
 [dependencies]
+bit_field = "0.10.2"
 bootloader = "0.9.23"
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 x86_64 = "0.14.12"
