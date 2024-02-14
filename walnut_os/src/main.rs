@@ -7,6 +7,7 @@
 pub mod arch;
 /// I drive(r)
 pub mod gosling;
+pub mod serial; // TODO Remove this
 pub mod util;
 
 #[cfg(test)]

@@ -13,132 +13,67 @@ impl SerialPort {
         ret
     }
 
-    fn line_control_register(&self) -> bool {
+    pub fn line_control_register(&self) -> bool {
+        let s = SerialPort::new(0x3F8);
+        let port_val = s.read_port(LineStatusRegister {}, AccessMode::Read);
+        crate::println!("Got port_val: {:#x?}", port_val);
+        loop {}
         true
     }
 
     fn set_baud_rate_115200() {}
+
+    fn read_port(&self, port: impl UartRegister, access_mode: AccessMode) -> u8 {
+        let res = self.port_ptr(port.access(access_mode));
+        unsafe { res.read_volatile() }
+    }
+
+    fn read_bit(&self, pos: u8) -> bool {
+        true
+    }
+
+    fn write_bit(&self, pos: u8, val: bool) {
+        //
+    }
+
+    fn port_ptr(&self, offset: u8) -> *mut u8 {
+        let ptr = (self.base_addr + offset as usize) as *mut u8;
+        crate::println!("Got port pointer to: {:#x?}", ptr);
+        ptr
+    }
 }
 
-#[repr(transparent)]
+trait UartRegister {
+    fn access(self, m: AccessMode) -> u8;
+}
+
+struct LineStatusRegister {}
+impl UartRegister for LineStatusRegister {
+    fn access(self, m: AccessMode) -> u8 {
+        match m {
+            AccessMode::Read => 5,
+            AccessMode::ReadDlab => 5,
+            _ => unreachable!(),
+        }
+    }
+}
+
 enum DivisorLatchAccessBitState {
-    Disabled = false,
-    Enabled = true,
+    Disabled = 0,
+    Enabled = 1,
 }
 
-#[repr(transparent)]
 enum AccessMode {
     Read,
     Write,
+    ReadDlab,
+    WriteDlab,
 }
 
-enum Port {
-    // IO PORT -  R/W  - DLAB
-    //
-    // base +0 - read  - 0
-    ReceiverBuffer,
-    // base +0 - write - 0
-    TransmitterHolding,
-    // base +0 - read  - 1
-    DivisorLatchLsbRead,
-    // base +0 - write - 1
-    DivisorLatchLsbWrite,
-
-    // IO PORT -  R/W  - DLAB
-    // base +1 - read  - 0
-    InterruptEnableRead,
-    // base +1 - write - 0
-    InterruptEnableWrite,
-    // base +1 - read  - 1
-    DivisorLatchMsbRead,
-    // base +1 - write - 1
-    DivisorLatchMsbWrite,
-
-    // IO PORT -  R/W  - DLAB
-    // base +2 - read  - 0
-    InterruptIdentificationReadDisabled,
-    // base +2 - write - 0
-    FifoControlDisabled,
-    // base +2 - read  - 1
-    InterruptIdentificationReadEnabled,
-    // base +2 - write - 1
-    FifoControlEnabled,
-
-    // IO PORT -  R/W  - DLAB
-    // base +3 - read  - 0
-    LineControlReadDisabled,
-    // base +3 - write - 0
-    LineControlWriteDisabled,
-    // base +3 - read  - 1
-    LineControlReadEnabled,
-    // base +3 - write - 1
-    LineControlWriteEnabled,
-
-    // IO PORT -  R/W  - DLAB
-    // base +4 - read  - 0
-    ModemControlReadDisabled,
-    // base +4 - write - 0
-    ModemControlWriteDisabled,
-    // base +4 - read  - 1
-    ModemControlReadEnabled,
-    // base +4 - write - 1
-    ModemControlWriteEnabled,
-
-    // IO PORT -  R/W  - DLAB
-    // base +5 - read  - 0
-    LineStatusDisabled,
-    // base +5 - write - 0
-    FactoryTest,
-    // base +5 - read  - 1
-    LineStatusEnabled,
-    // base +5 - write - 1
-    FactoryTest,
-
-    // IO PORT -  R/W  - DLAB
-    // base +6 - read  - 0
-    ModemStatusDisabled,
-    // base +6 - write - 0
-    NotUsed,
-    // base +6 - read  - 1
-    ModemStatusEnabled,
-    // base +6 - write - 1
-    FactoryTest,
-
-    // IO PORT -  R/W  - DLAB
-    // base +7 - read  - 0
-    Scratch,
-    // base +7 - write - 0
-    Scratch,
-    // base +7 - read  - 1
-    Scratch,
-    // base +7 - write - 1
-    Scratch,
-}
-
-impl Port {
-    pub fn byte(self, base_addr: usize) -> usize {
-        match self {
-            Self::ReceiverBuffer
-            | Self::TransmitterHolding
-            | Self::DivisorLatchLsbRead
-            | Self::DivisorLatchLsbWrite => base_addr + 0,
-
-            Self::InterruptEnableRead
-            | Self::InterruptEnableWrite
-            | Self::DivisorLatchMsbRead
-            | Self::DivisorLatchMsbWrite => base_addr + 1,
-
-            Self::InterruptIdentificationReadDisabled
-            | Self::FifoControlDisabled
-            | Self::InterruptIdentificationReadEnabled
-            | Self::FifoControlEnabled => base_addr + 1,
-
-            Self::LineControlReadDisabled
-            | Self::LineControlWriteDisabled
-            | Self::LineControlReadEnabled
-            | Self::LineControlWriteEnabled => base_addr + 3,
-
-            _ => todo!(),
-        }
-    }
+#[test_case]
+fn test_port_address_read() {
+    let s = SerialPort::new(0x3F8);
+    let port_val = s.read_port(LineStatusRegister {}, AccessMode::Read);
+    crate::println!("Got port_val: {:#x?}", port_val);
+    loop {}
 }
