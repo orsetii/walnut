@@ -1,175 +1,71 @@
-use crate::println;
+use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
+use x86_64::structures::idt::InterruptStackFrame;
 
-#[derive(Debug)]
-#[repr(C)]
-pub struct ExceptionStackFrame {
-    pub instruction_pointer: u64,
-    pub code_segment: u64,
-    pub cpu_flags: u64,
-    pub stack_pointer: u64,
-    pub stack_segment: u64,
-}
+use crate::{
+    arch::amd64::cpu::{interrupts::pic::InterruptIndex, port::Port},
+    print, println,
+    util::sync::SpinLock,
+};
 
-pub extern "C" fn divide_by_zero_handler(sf: &ExceptionStackFrame) {
-    println!(
-        "EXCEPTION: DIVIDE BY ZERO at {:#x}\n{:#x?}",
-        sf.instruction_pointer, sf
-    );
-    crate::vga_println!(
-        "EXCEPTION: DIVIDE BY ZERO at {:#x}\n{:#x?}",
-        sf.instruction_pointer,
-        sf
+pub extern "x86-interrupt" fn double_fault_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: u64,
+) -> ! {
+    panic!(
+        "EXCEPTION: DOUBLE FAULT: {:?}\n{:#?}",
+        error_code, stack_frame
     );
 }
+pub extern "x86-interrupt" fn page_fault_handler(
+    stack_frame: InterruptStackFrame,
+    error_code: x86_64::structures::idt::PageFaultErrorCode,
+) {
+    use x86_64::registers::control::Cr2;
 
-pub extern "C" fn breakpoint_handler(sf: &ExceptionStackFrame) {
-    println!(
-        "EXCEPTION: BREAKPOINT at {:#x}\n{:#x?}",
-        sf.instruction_pointer, sf
-    );
+    println!("EXCEPTION: PAGE FAULT");
+    println!("Accessed Address: {:?}", Cr2::read());
+    println!("Error Code: {:?}", error_code);
+    println!("{:#?}", stack_frame);
+    crate::util::hlt_loop();
 }
 
-pub extern "C" fn invalid_opcode_handler(sf: &ExceptionStackFrame) {
-    println!(
-        "EXCEPTION: INVALID OPCODE at {:#x}\n{:#x?}",
-        sf.instruction_pointer, sf
-    );
+pub extern "x86-interrupt" fn breakpoint_handler(stack_frame: InterruptStackFrame) {
+    println!("EXCEPTION: BREAKPOINT\n{:#?}", stack_frame);
 }
 
-pub extern "C" fn double_fault_handler(sf: &ExceptionStackFrame) {
-    println!(
-        "EXCEPTION: DOUBLE FAULT at {:#x}\n{:#x?}",
-        sf.instruction_pointer, sf
-    );
-    loop {}
-}
+pub extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    print!(".");
 
-#[allow(dead_code)]
-#[repr(C)]
-#[derive(Debug)]
-pub enum PageFaultErrorCode {
-    ProtectionViolation = 1 << 0,
-    CausedByWrite = 1 << 1,
-    UserMode = 1 << 2,
-    MalformedTable = 1 << 3,
-    InstructionFetch = 1 << 4,
-}
-
-pub extern "C" fn page_fault_handler(sf: &ExceptionStackFrame, error_code: PageFaultErrorCode) {
-    println!(
-        "EXCEPTION: PAGE FAULT with error: {:?}\n{:#x?}",
-        error_code, sf
-    );
-}
-
-macro_rules! exception_handler {
-    ($name: ident) => {{
-        #[naked]
-        extern "C" fn wrapper() -> ! {
-            unsafe {
-                asm!(
-
-                    save_scratch_registers!(),
-                    "mov rdi, rsp",
-                    "sub rsp, 8",
-                    "call {}",
-                    restore_scratch_registers!(),
-                    "add rsp, 8",
-                    "iretq",
-                  sym $name, options(noreturn));
-                }
-            }
-        wrapper
-    }
-}}
-
-macro_rules! exception_handler_w_error {
-    ($name: ident) => {{
-        #[naked]
-        extern "C" fn wrapper() -> ! {
-            unsafe {
-                asm!(
-                    save_scratch_registers!(),
-                    "mov rsi, [rsp + 9*8]",
-                    "mov rdi, rsp",
-                    "add rdi, 10*8",
-                    "sub rsp, 8",
-                    "call {}",
-                    "add rsp, 8",
-                    restore_scratch_registers!(),
-                    "iretq",
-                  sym $name, options(noreturn));
-                }
-            }
-        wrapper
-    }
-}}
-
-macro_rules! save_scratch_registers {
-    () => {
-        "push rax
-              push rcx
-              push rdx
-              push rsi
-              push rdi
-              push r8
-              push r9
-              push r10
-              push r11
-        "
+    unsafe {
+        super::pic::PICS
+            .lock()
+            .notify_end_of_interrupt(InterruptIndex::Timer.as_u8())
     };
 }
 
-macro_rules! restore_scratch_registers {
-    () => {
-        "pop r11
-              pop r10
-              pop r9
-              pop r8
-              pop rdi
-              pop rsi
-              pop rdx
-              pop rcx
-              pop rax
-            "
-    };
-}
-
-#[test_case]
-fn test_breakpoint_exception() {
-    use core::arch::asm;
-    unsafe {
-        asm!("int3", options(nomem, nostack));
-    }
-}
-
-#[test_case]
-fn test_divide_by_zero_exception() {
-    use core::arch::asm;
-    unsafe {
-        // Move the dividend (4) into the RAX register
-        // Zero out the RDX register (important for division)
-        // Divide RAX by RDX (zero), triggering the fault
-        asm!(
-            "mov rax, 4   
-            xor rdx, rdx 
-            div rdx",
-            options(nomem, nostack)
+pub extern "x86-interrupt" fn kb_interrupt_handler(_stack_frame: InterruptStackFrame) {
+    lazy_static::lazy_static! {
+        static ref KEYBOARD: SpinLock<Keyboard<layouts::Us104Key, ScancodeSet1>> = SpinLock::new(
+            Keyboard::new(ScancodeSet1::new(),layouts::Us104Key,  HandleControl::Ignore)
         );
     }
-}
 
-#[test_case]
-fn test_invalid_opcode_exception() {
-    use core::arch::asm;
-    unsafe {
-        asm!("ud2");
-    }
-}
+    let mut keyboard = KEYBOARD.lock();
+    let mut port = Port::new(0x60);
 
-#[test_case]
-fn test_page_fault_exception() {
-    unsafe {
-        *(0xdeadbea8 as *mut u64) = 42;
+    let scancode: u8 = unsafe { port.readb() };
+    if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
+        if let Some(key) = keyboard.process_keyevent(key_event) {
+            match key {
+                DecodedKey::Unicode(character) => print!("{}", character),
+                DecodedKey::RawKey(key) => print!("{:?}", key),
+            }
+        }
     }
+
+    unsafe {
+        super::pic::PICS
+            .lock()
+            .notify_end_of_interrupt(InterruptIndex::Timer.as_u8())
+    };
 }

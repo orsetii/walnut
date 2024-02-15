@@ -4,6 +4,7 @@ pub mod uart_16550;
 use lazy_static::lazy_static;
 #[cfg(feature = "uart_16550")]
 pub use uart_16550::SerialPort;
+use x86_64::instructions;
 
 use crate::util::sync::SpinLock;
 
@@ -14,10 +15,13 @@ lazy_static! {
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;
-    SERIAL
-        .lock()
-        .write_fmt(args)
-        .expect("Printing to serial failed");
+
+    instructions::interrupts::without_interrupts(|| {
+        SERIAL
+            .lock()
+            .write_fmt(args)
+            .expect("Printing to serial failed");
+    })
 }
 
 /// Prints to the host through the serial interface.

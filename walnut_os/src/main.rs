@@ -2,30 +2,37 @@
 #![no_main]
 #![feature(custom_test_frameworks, const_mut_refs, const_ptr_as_ref, const_option)]
 
+use bootloader::{entry_point, BootInfo};
+use walnut_os::{arch::amd64::memory::translate_addr, println, util::hlt_loop};
+use x86_64::VirtAddr;
+
+entry_point!(kmain);
+
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn kmain(info: &'static BootInfo) -> ! {
+    walnut_os::println!("{:#?}", info);
     walnut_os::println!("Walnut OS booting...");
     walnut_os::arch::initialize();
 
-    bp();
-    page_fault();
-    divide_by_zero();
+    let phys_mem_offset = VirtAddr::new(info.physical_memory_offset);
+    let phys_mem_offset = VirtAddr::new(info.physical_memory_offset);
 
-    walnut_os::println!("Walnut OS booting...");
-    loop {}
-}
+    let addresses = [
+        // the identity-mapped vga buffer page
+        0xb8000,
+        // some code page
+        0x201008,
+        // some stack page
+        0x0100_0020_1a10,
+        // virtual address mapped to physical address 0
+        info.physical_memory_offset,
+    ];
 
-fn divide_by_zero() {
-    unsafe { core::arch::asm!("mov dx, 0", "div dx") }
-}
-
-fn bp() {
-    unsafe { core::arch::asm!("int3") }
-}
-
-fn page_fault() {
-    // provoke a page fault
-    unsafe {
-        *(0xdeadbea8 as *mut u64) = 42;
+    for &address in &addresses {
+        let virt = VirtAddr::new(address);
+        let phys = unsafe { translate_addr(virt, phys_mem_offset) };
+        println!("{:?} -> {:?}", virt, phys);
     }
+
+    hlt_loop();
 }
