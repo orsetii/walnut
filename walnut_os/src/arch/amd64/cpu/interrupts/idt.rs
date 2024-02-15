@@ -1,8 +1,16 @@
-use super::entry::{Entry, EntryOptions, HandlerFunc, SegmentSelector};
-use crate::println;
-use x86_64::VirtAddr;
+
+use super::entry::{Entry, EntryOptions, HandlerFunc};
+
+#[repr(C, packed(2))]
+pub struct Idtr {
+    /// Size of the DT.
+    pub limit: u16,
+    /// Pointer to the memory region containing the DT.
+    pub base: u64,
+}
 
 #[cfg(all(target_arch = "x86_64", target_pointer_width = "64"))]
+#[repr(C)]
 pub struct Idt([Entry; 16]);
 
 impl Idt {
@@ -16,13 +24,18 @@ impl Idt {
 
     pub fn load(&'static self) {
         use core::mem::size_of;
-        use x86_64::instructions::tables::{lidt, DescriptorTablePointer};
 
-        let ptr = DescriptorTablePointer {
-            base: VirtAddr::new(self as *const _ as u64),
+        let ptr = Idtr {
+            base: self as *const _ as u64,
             limit: (size_of::<Self>() - 1) as u16,
         };
 
-        unsafe { lidt(&ptr) };
+        unsafe { w_lidt(&ptr) };
+    }
+}
+
+unsafe fn w_lidt(idt: &Idtr) {
+    unsafe {
+        core::arch::asm!("lidt [{}]", in(reg) idt, options(readonly, nostack, preserves_flags));
     }
 }
