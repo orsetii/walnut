@@ -20,9 +20,9 @@ macro_rules! println
 		print!("\r\n")
 	});
 	($fmt:expr) => ({
-		print!(concat!($fmt, "\r\n"))
+		crate::print!(concat!($fmt, "\r\n"))
 	});
 	($fmt:expr, $($args:tt)+) => ({
-		print!(concat!($fmt, "\r\n"), $($args)+)
+		crate::print!(concat!($fmt, "\r\n"), $($args)+)
 	});
 }

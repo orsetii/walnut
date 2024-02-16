@@ -35,6 +35,10 @@ run: all
 disk:
 	dd if=/dev/zero of=$(DRIVE) bs=1M count=32
 
+debug: all
+	qemu-system-riscv64 -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM) -serial mon:stdio -bios none -kernel $(OUT) -drive if=none,format=raw,file=$(DRIVE),id=foo -device virtio-blk-device,scsi=off,drive=foo -s -S &
+	/opt/riscv-walnut/bin/riscv64-unknown-linux-gnu-gdb --tui $(OUT) -ex "target remote :1234"
+
 .PHONY: clean
 clean:
 	cargo clean

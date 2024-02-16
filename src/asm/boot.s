@@ -53,8 +53,8 @@ _start:
 	# Machine's exception program counter (MEPC) is set to `kinit`.
 	la		t1, kinit
 	csrw	mepc, t1
-	# Machine's trap vector base address is set to `asm_trap_vector`.
-	la		t2, asm_trap_vector
+	# Machine's trap vector base address is set to `m_trap_vector`.
+	la		t2, m_trap_vector
 	csrw	mtvec, t2
 	# Set the return address to get us into supervisor mode
 	la		ra, 2f
@@ -94,7 +94,7 @@ _start:
 	# Essentially this is a function pointer, but the last two bits can be 00 or 01
 	# 00        : All exceptions set pc to BASE
 	# 01        : Asynchronous interrupts set pc to BASE + 4 x scause
-	la		t3, asm_trap_vector
+	la		t3, m_trap_vector
 	csrw	stvec, t3
 	# kinit() is required to return back the SATP value (including MODE) via a0
 	csrw	satp, a0

@@ -18,9 +18,10 @@ use crate::mem::{
     page::{align_val, map, print_page_allocations, virt_to_phys, EntryBits, Table, PAGE_SIZE},
 };
 
-pub mod cpu;
 #[macro_use]
 pub mod io;
+
+pub mod cpu;
 pub mod mem;
 pub mod sync;
 
@@ -104,7 +105,6 @@ extern "C" fn kinit() -> usize {
 
 #[no_mangle]
 extern "C" fn kmain() {
-    panic!();
     // kmain() starts in supervisor mode. So, we should have the trap
     // vector setup and the MMU turned on when we get here.
     // Create a new scope so that we can test the global allocator and
