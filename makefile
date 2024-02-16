@@ -23,7 +23,7 @@ MACH=virt
 CPU=rv64
 CPUS=4
 MEM=128M
-DRIVE=hdd.dsk
+DRIVE=./target/hdd.dsk
 
 all:
 	cargo build
@@ -33,7 +33,7 @@ run: all
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)   -serial mon:stdio -bios none -kernel $(OUT) -drive if=none,format=raw,file=$(DRIVE),id=foo -device virtio-blk-device,scsi=off,drive=foo
 
 disk:
-	dd if=/dev/zero of=./target/hdd.dsk bs=1M count=32
+	dd if=/dev/zero of=$(DRIVE) bs=1M count=32
 
 .PHONY: clean
 clean:
