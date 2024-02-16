@@ -1,0 +1,39 @@
+[package]
+name = "walnut_os"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["uart_16550"]
+uart_16550 = []
+
+[[bin]]
+name = "walnut_os"
+test = false
+
+
+[dependencies]
+bit_field = "0.10.2"
+bootloader = { version = "0.9.23", features = ["map_physical_memory"] }
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+pc-keyboard = "0.7.0"
+pic8259 = "0.10.4"
+x86_64 = "0.14.12"
+
+[package.metadata.bootimage]
+run-args = [
+	"-device",
+	"isa-debug-exit,iobase=0xf4,iosize=0x04",
+	"-serial",
+	"stdio",
+]
+test-args = [
+	"-device",
+	"isa-debug-exit,iobase=0xf4,iosize=0x04",
+	"-serial",
+	"stdio",
+	"-display",
+	"none",
+]
+test-success-exit-code = 33 # (0x10 << 1) | 1
+test-timeout = 120 # (in seconds)
