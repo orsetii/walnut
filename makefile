@@ -1,14 +1,16 @@
 # Compiler and linker
-CC = riscv64-unknown-linux-gnu-gcc
-LD = riscv64-unknown-linux-gnu-ld
-AS = riscv64-unknown-linux-gnu-as 
-
-# Standard C/C++ flags
-CFLAGS = -march=rv64g -mabi=lp64d -Wall -Wextra -O2 -g
-ASFLAGS= -g
-
+CC = /opt/riscv-walnut/bin/riscv64-unknown-elf-gcc
+LD = /opt/riscv-walnut/bin/riscv64-unknown-elf-ld
+AS = /opt/riscv-walnut/bin/riscv64-unknown-elf-as
 
 BUILD_DIR=build
+INCLUDES := -I./src/kernel/include
+
+FEATURE_FLAGS := -DUART_ENABLED=1
+
+CFLAGS := -ffreestanding -nostartfiles -nostdlib -nodefaultlibs -g -Wl,--gc-sections -mcmodel=medany -march=rv64g -Wl,--no-warn-rwx-segments -mabi=lp64d -Wall -Wextra -O0 -g $(INCLUDES) $(FEATURE_FLAGS)
+ASFLAGS= -g
+
 
 
 # Source Files
@@ -37,7 +39,7 @@ $(BUILD_DIR)/%.o: %.s
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Build target
-build: $(KERNEL_TARGET)
+build: $(BUILD_DIR)/$(KERNEL_TARGET)
 
 # Run target
 run: build

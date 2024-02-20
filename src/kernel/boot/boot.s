@@ -15,11 +15,12 @@
 .option norvc
 .section .data
 
-.section .text.init
-
+.section .init
 .global _start
 
 _start:
+	.cfi_startproc
+
 		# Read the hart ID
 		csrr t0, mhartid  
 		# if not in hart #0, jump to 'wait for interrupt' loop
@@ -30,7 +31,7 @@ _start_m_main_hart_thread_only:
 		csrw satp, zero
 		.option push
 		.option norelax
-		la gp, _global_pointer
+		la gp, __global_pointer
 		.option pop
 
 _start_m_validate_bss:
@@ -38,8 +39,8 @@ _start_m_validate_bss:
 		#
 		# This is effectively an assert that the 
 		# start address is before the end address
-		la      a0,     _bss_start     
-		la      a1,     _bss_end
+		la      a0,     __bss_start     
+		la      a1,     __bss_end
 		# skip zeroing if not needed
 		bgeu    a0,     a1, _start_m_delegate_interrupts            
 
@@ -57,7 +58,7 @@ _start_m_init_stack:
 		# load the stack pointer from
 		# the link script. 	
 		# It is calculated as _bss_end + 0x80000 (524 KiB Total)
-		la sp, _stack_end
+		la sp, __kernel_stack_end
 
 _start_m_kinit_init_mstatus:
 		.set M_ENABLE_MACHINE_MODE, (0b11 << 11)
@@ -148,7 +149,7 @@ hart_parking_lot:
 	# change.
 
 	# We divide up the stack so the harts aren't clobbering one another.
-	la		sp, _stack_end
+	la		sp, __kernel_stack_end
 	li		t0, 0x10000
 	csrr	a0, mhartid
 	mul		t0, t0, a0
@@ -176,6 +177,7 @@ hart_parking_lot:
 	la		ra, wfi_loop
 	# We use mret here so that the mstatus register is properly updated.
 	mret
+	.cfi_endproc
 
 
 wfi_loop:

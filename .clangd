@@ -1,0 +1,3 @@
+compileFlags:
+  add: 
+    - "-I./src/kernel/include" 
