@@ -1,45 +1,58 @@
-#####
-## BUILD
-#####
-#CC=riscv64-unknown-linux-gnu-g++
-CC=/opt/riscv-walnut/bin/riscv64-unknown-linux-gnu-g++
-CFLAGS=-Wall -Wextra -pedantic -Wextra -O0 -g -std=c++17
-CFLAGS+=-static -ffreestanding -nostdlib -fno-rtti -fno-exceptions
-CFLAGS+=-march=rv64gc -mabi=lp64d 
-INCLUDES=
-LINKER_SCRIPT=-Tsrc/lds/virt.lds
-TYPE=debug
-RUST_TARGET=./target/riscv64gc-unknown-none-elf/$(TYPE)
-LIBS=-L$(RUST_TARGET)
-SOURCES_ASM=$(wildcard src/asm/*.s)
-LIB=-lwalnut -lgcc
-OUT=./target/kernel/debug/os.elf
+# Compiler and linker
+CC = riscv64-unknown-linux-gnu-gcc
+LD = riscv64-unknown-linux-gnu-ld
+AS = riscv64-unknown-linux-gnu-as 
 
-#####
-## QEMU
-#####
-QEMU=qemu-system-riscv64
-MACH=virt
-CPU=rv64
-CPUS=4
-MEM=128M
-DRIVE=./target/hdd.dsk
+# Standard C/C++ flags
+CFLAGS = -march=rv64g -mabi=lp64d -Wall -Wextra -O2 -g
+ASFLAGS= -g
 
-all:
-	cargo build
-	$(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
-	
-run: all
-	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM)   -serial mon:stdio -bios none -kernel $(OUT) -drive if=none,format=raw,file=$(DRIVE),id=foo -device virtio-blk-device,scsi=off,drive=foo
 
-disk:
-	dd if=/dev/zero of=$(DRIVE) bs=1M count=32
+BUILD_DIR=build
 
-debug: all
-	qemu-system-riscv64 -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM) -serial mon:stdio -bios none -kernel $(OUT) -drive if=none,format=raw,file=$(DRIVE),id=foo -device virtio-blk-device,scsi=off,drive=foo -s -S &
-	/opt/riscv-walnut/bin/riscv64-unknown-linux-gnu-gdb --tui $(OUT) -ex "target remote :1234"
 
-.PHONY: clean
+# Source Files
+OS_SOURCES := $(shell find src/ -name '*.c')
+OS_ASM_SOURCES := $(shell find src/ -name '*.s')
+
+
+# Object files
+OS_OBJECTS := $(OS_SOURCES:.c=.o) $(OS_ASM_SOURCES:.s=.o)
+OS_OBJECTS := $(addprefix $(BUILD_DIR)/, $(OS_OBJECTS))
+
+# Name of your kernel executable
+KERNEL_TARGET = $(BUILD_DIR)/walnut
+
+# Linking step 
+$(BUILD_DIR)/$(KERNEL_TARGET): $(OS_OBJECTS)
+	$(LD) -T linker.ld -o $(KERNEL_TARGET) $(OS_OBJECTS)
+
+# Compilation rules
+$(BUILD_DIR)/%.o: %.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o: %.s
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Build target
+build: $(KERNEL_TARGET)
+
+# Run target
+run: build
+	qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 512M -serial mon:stdio -bios none -kernel $(KERNEL_TARGET) 
+
+debug: build
+	qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 512M -serial mon:stdio -bios none -kernel $(KERNEL_TARGET) -s -S &
+	riscv64-unknown-elf-gdb $(KERNEL_TARGET) --tui -ex "target remote :1234" -x ./gdb/config.gdb
+
+no_display_run: build
+	qemu-system-riscv64 -machine virt -nographic -bios none -kernel $(KERNEL_TARGET) 
+
+
+# Clean target 
 clean:
-	cargo clean
-	rm -f $(OUT)
+	rm -f $(KERNEL_TARGET) $(OS_OBJECTS)
+
+MKDIR_P = mkdir -p

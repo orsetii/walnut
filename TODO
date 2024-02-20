@@ -1,5 +1,0 @@
-uart driver not worky
-debug it i guess
-
-to note that i changed the `Port` implemnentation to use u32, shouldnt affect it
-but possible.
