@@ -1,8 +1,14 @@
 #ifndef TYPES_H
 #define TYPES_H
+#include <stddef.h>
+
+typedef unsigned char bool;
+#define true 1
+#define false 0
 
 typedef unsigned long addr_t;
 typedef unsigned char byte_t;
+typedef unsigned int uint;
 
 typedef unsigned char u8;
 typedef unsigned short u16;
