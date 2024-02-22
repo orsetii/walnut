@@ -9,8 +9,7 @@ void kinit() {
     pgalloc_init();
     init_ptable();
     allocator_init();
-
-    idmap_kheap();
+    //*(volatile u64*)0x801f9000 = 0xdeadbeef;
 }
 
 void kinit_hart() {
