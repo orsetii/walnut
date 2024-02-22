@@ -38,6 +38,9 @@ $(BUILD_DIR)/%.o: %.s
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+all: build
+
+
 # Build target
 build: $(BUILD_DIR)/$(KERNEL_TARGET)
 
@@ -46,8 +49,12 @@ run: build
 	qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 512M -serial mon:stdio -bios none -kernel $(KERNEL_TARGET) 
 
 debug: build
-	qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 512M -serial mon:stdio -bios none -kernel $(KERNEL_TARGET) -s -S &
+	qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 512M -serial mon:stdio -bios none -kernel $(KERNEL_TARGET) -s -S > /dev/null 2>&1 &
 	riscv64-unknown-elf-gdb $(KERNEL_TARGET) --tui -ex "target remote :1234" -x ./gdb/config.gdb
+
+sd: build
+	qemu-system-riscv64 -machine virt -cpu rv64 -smp 4 -m 512M -serial mon:stdio -bios none -kernel $(KERNEL_TARGET) -s -S &
+	QT_AUTO_SCREEN_SET_FACTOR=0 QT_SCALE_FACTOR=2 QT_FONT_DPI=96 seer --connect localhost:1234 --sat --cwd ~/Source/walnut/ $(KERNEL_TARGET)
 
 no_display_run: build
 	qemu-system-riscv64 -machine virt -nographic -bios none -kernel $(KERNEL_TARGET) 
