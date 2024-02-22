@@ -29,6 +29,7 @@ _start:
 _start_m_main_hart_thread_only:
 		# Ensure SATP is zero
 		csrw satp, zero
+
 		.option push
 		.option norelax
 		la gp, __global_pointer
@@ -96,46 +97,39 @@ _start_m_m_kinit:
 
 _start_supervisor_mode_entry:
 
-_start_s_kmain_init_sstatus:
-		.set S_SET_SUPERVISOR_SPP, (1 << 8)
-		.set S_ENABLE_INTERRUPTS, (1 << 1)
-		.set S_SET_PREV_INTERRUPT_ENABLED, (1 << 5)
-
-		li		t0, S_SET_SUPERVISOR_SPP | S_ENABLE_INTERRUPTS | S_SET_PREV_INTERRUPT_ENABLED
-		csrw	sstatus, t0
-
-
-_start_s_kmain_init_sie:
-		.set S_ENABLE_SOFTWARE_INTERRUPTS, (1 << 1)
-		.set S_ENABLE_TIMER_INTERRUPTS, (1 << 5)
-		.set S_ENABLE_EXTERNAL_INTERRUPTS, (1 << 9)
-
-		li		t1, S_ENABLE_TIMER_INTERRUPTS | S_ENABLE_TIMER_INTERRUPTS | S_ENABLE_EXTERNAL_INTERRUPTS
-		csrw	sie, t1
+_start_s_kmain_init_mstatus:
+		.set M_ENABLE_SUPERVISOR_MODE, (1 << 11)
+		.set M_ENABLE_PREV_MACHINE_INTERRUPT, (1 << 7)
+		.set M_ENABLE_PREV_INTERRUPT, (1 << 5)
+		li		t0, M_ENABLE_SUPERVISOR_MODE | M_ENABLE_PREV_MACHINE_INTERRUPT | M_ENABLE_PREV_INTERRUPT
+		csrw	mstatus, t0
 
 
 _start_s_init_stvec:
-		# TODO make the s_trap_vector fn and put here
-		#      need to work out the differences though!
-		la		t3, m_trap_vector
-		csrw stvec, t3
+		la		t2, m_trap_vector
+		csrw mtvec, t2
 
-_start_s_set_mpp:
-		.set S_ENABLE_SUPERVISOR_MODE, (0b01 << 11)
-		li		t0, S_ENABLE_SUPERVISOR_MODE
-		csrw	mstatus, t0
-		
+
+
 # Load the kmain function address 
 # into the `Supervisor Exception Program Counter` CSR
 # This is technically needed only when executing 
 # a S-mode to U-mode change, which we are NOT 
 # performing here (note the lack of `sret` below)
 _start_s_load_kmain:
-		la t4, kmain
-		csrw sepc, t4
+		la t1, kmain
+		csrw mepc, t1
+
+_start_s_init_mie:
+	# TODO make the flags properly here
+	# 1 << 1    : Supervisor software interrupt enable (SSIE=1 [Enabled])
+	# 1 << 5    : Supervisor timer interrupt enable (STIE=1 [Enabled])
+	# 1 << 9    : Supervisor external interrupt enable (SEIE=1 [Enabled])
+	li		t2, 0x888
+	csrw	mie, t2
 
 _start_s_return:
-		jal kmain
+		mret
 
 # Note: i stole this code, i dont actually really know what or why it does. will revisit post-paging impl
 hart_parking_lot:
