@@ -1,0 +1,14 @@
+[build]
+target = "riscv64gc-unknown-none-elf"
+rustflags = ['-Clink-arg=-Tmisc/lds/kernel.ld']
+
+[target.riscv64gc-unknown-none-elf]
+runner = "misc/scripts/runner.sh "
+
+[alias]
+d = "r -- debug"
+x = "r -- disas"
+
+
+[net]
+git-fetch-with-cli = true

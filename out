@@ -1,0 +1,3 @@
+
+target/riscv64gc-unknown-none-elf/debug/walnut:     file format elf64-littleriscv
+
