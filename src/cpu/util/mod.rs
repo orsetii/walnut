@@ -1,10 +1,14 @@
-use core::arch::asm;
+use super::csr::ControlStatusRegister;
 
 
-pub fn my_hart() -> usize {
-    let id: usize;
-    unsafe {
-        asm!("csrr {}, mhartid", out(reg) id);
-    }
-    id
+
+/// Gets the HART ID of the running CPU
+///
+/// # Safety
+///
+/// If this is ran BEFORE the Hart ID is set,
+/// or if `tp0` was cleared/changed, we will return
+/// incorrect data.
+pub unsafe fn my_hart() -> usize {
+    ControlStatusRegister::ThreadPointer.read()
 }

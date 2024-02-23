@@ -94,6 +94,7 @@ pub fn set_prev_privilege_mode(m: Mode) {
         asm!("csrw mstatus, {}", in(reg) csr_data);
     }
 
+    // Sanity check!
     assert!(m == get_prev_privilege_mode());
 }
 
