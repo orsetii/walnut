@@ -126,9 +126,10 @@ impl SerialInner {
         }
     }
 }
-impl core::fmt::Write for SerialInner {
+
+impl core::fmt::Write for SerialPort {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
-        self.print(s);
+        self.lock().print(s);
         Ok(())
     }
 }

@@ -1,7 +1,5 @@
 use super::csr::ControlStatusRegister;
 
-
-
 /// Gets the HART ID of the running CPU
 ///
 /// # Safety

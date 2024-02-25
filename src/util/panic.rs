@@ -1,10 +1,10 @@
 use core::panic::PanicInfo;
 
-use crate::println;
+use crate::{cpu::util::my_hart, println};
 
 #[panic_handler]
-fn panic_handler<'a>(info: &'a PanicInfo) -> ! {
-    println!("PANIC!!!\n {:#x?}", info);
+fn panic_handler(info: &PanicInfo) -> ! {
+    println!("PANIC IN HART#{}!!!\n {:#x?}", my_hart(), info);
 
     loop {}
 }

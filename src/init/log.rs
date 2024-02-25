@@ -11,7 +11,7 @@ macro_rules! log_level {
     ($level:expr, $($arg:tt)+) => {
         if cfg!(debug_assertions) {
             $crate::println!(
-                "\x1B[{}m[{:^5}] {}\x1B[0m", 
+                "\x1B[{}m[{:^5}] {}\x1B[0m",
                 $crate::init::log::log_color($level), $level, format_args!($($arg)+)
             );
         }
@@ -30,12 +30,12 @@ macro_rules! debug {
 
 #[macro_export]
 macro_rules! warn {
-    ($($arg:tt)+) => ($crateinit::log::log_level!($crate::init::log::Level::Warn, $($arg)+))
+    ($($arg:tt)+) => ($crate::log_level!($crate::init::log::Level::Warn, $($arg)+))
 }
 
 #[macro_export]
 macro_rules! error {
-    ($($arg:tt)+) => ($crateinit::log::log_level!($crate::init::log::Level::Error, $($arg)+))
+    ($($arg:tt)+) => ($crate::log_level!($crate::init::log::Level::Error, $($arg)+))
 }
 
 pub fn log_color(level: Level) -> &'static str {
@@ -55,5 +55,5 @@ impl core::fmt::Display for Level {
             Self::Warn => f.write_str("WARN"),
             Self::Error => f.write_str("ERROR"),
         }
-    } 
+    }
 }

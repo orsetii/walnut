@@ -45,6 +45,10 @@ SECTIONS
     . = ALIGN(16);
     *(.bss .bss.*)
   }
-
+  PROVIDE(__global_pointer = .);
+  PROVIDE(__heap_start = .);
+  . = 0x88000000;
+  PROVIDE(__heap_end = .);
+  PROVIDE(__heap_size = end - __heap_start);
   PROVIDE(end = .);
 }

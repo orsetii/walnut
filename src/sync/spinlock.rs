@@ -71,7 +71,7 @@ impl<T> Drop for Guard<'_, T> {
         // if we are not, we panic. This IS a bug, and leaving
         // this to create unforeseen consequences down the line
         // only creates worse and harder-to-debug errors/bugs.
-        assert_eq!(prev_val, true);
+        assert!(prev_val);
     }
 }
 
@@ -94,5 +94,9 @@ impl<T> OnceCell<T> {
             self.initialized.store(true, Ordering::Relaxed);
         }
         self.value.as_mut().unwrap()
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.initialized.load(Ordering::Relaxed) && self.value.is_some()
     }
 }

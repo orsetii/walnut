@@ -16,12 +16,10 @@ extern "C" fn kinit() -> ! {
     // Disable paging (for now)
     ControlStatusRegister::Satp.write(0);
 
-    // Delegate interrupts
     delegate_traps();
 
     // configure PMP (Physical Memory Protection)
     // so supervisor mode can access all of physical memory
-
     ControlStatusRegister::Pmpaddr0.write(0x3fffffffffffff);
     ControlStatusRegister::Pmpcfg0.write(0xf);
 
