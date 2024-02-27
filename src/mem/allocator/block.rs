@@ -2,6 +2,7 @@
 pub const BLOCK_SIZE: usize = 64;
 
 pub type BlockPtr = *const Block;
+pub type BlockPtrMut = *mut Block;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -17,6 +18,6 @@ impl Block {
     /// # Safety
     /// 
     pub unsafe fn at_offset(list_head: BlockPtr, offset: usize) -> &'static mut Block {
-        &mut *(list_head as *mut Block).add(offset)
+        &mut *(list_head as *mut Block).byte_add(offset)
     }
 }

@@ -1,5 +1,7 @@
-use core::ptr::null;
+use core::{alloc::GlobalAlloc, cell::UnsafeCell, ptr::{null, null_mut}};
 use block::{BlockPtr, Block};
+
+use crate::{debug, error, info, mem::allocator::block::{BlockPtrMut, BLOCK_SIZE}};
 
 use super::pages::{PAGE_ALLOCATOR, PAGE_SIZE};
 use core::error::Error;
@@ -12,9 +14,12 @@ const INITIAL_KMEM_PAGE_COUNT: usize = 256;
 
 pub type AllocResult<T> = core::result::Result<T, AllocationError>;
 
-pub static mut ALLOCATOR: Allocator = Allocator { 
+#[global_allocator]
+pub static mut ALLOCATOR: AllocGuard = AllocGuard { 
+    allocator: UnsafeCell::new(Allocator {
     block_cnt: 0,
     free_list_head: null()
+    })
 };
 
 
@@ -55,11 +60,114 @@ impl Allocator {
 
     }
 
-    pub fn block_alloc(&self) {
-        todo!();
+    pub fn sub_block_alloc(&mut self, byte_cnt: usize) -> AllocResult<*const u8> {
+        self.block_alloc(Self::blocks_for_byte_sz(Self::align(byte_cnt)))
     }
-    pub fn block_dealloc(&self) {
-        todo!();
+
+    pub fn sub_block_dealloc(&mut self, p: *mut u8)  {
+        self.block_dealloc(p)
+    }
+
+    pub fn block_alloc(&mut self, n: usize) -> AllocResult<*const u8> {
+        if self.free_list_head.is_null() {
+            error!("No available blocks. Unable to allocate!");
+            return Err(AllocationError::new("No non-taken blocks found to allocate with"));
+        }
+
+
+        let mut current = self.free_list_head;
+        let mut prev = null_mut::<Block>();
+
+        unsafe {
+
+        while !current.is_null() && (*current).size < n {
+            prev = current as BlockPtrMut;
+            current = (*current).next;
+        }
+        }
+
+
+        if current.is_null() {
+            
+            debug!("No blocks big enough to hold {:#0x} found. Allocating {} pages.", n, Self::pages_for_block_cnt(n));
+            unsafe {
+            return Ok(PAGE_ALLOCATOR.alloc(Self::pages_for_block_cnt(n)).expect("Unable to allocate pages for alloc!") as *const u8);
+            }
+        }
+
+        unsafe {
+
+        if (*current).size > n {
+
+                info!("Block found was too large. Splitting into blocks of {} and {}", (*current).size - n, n);
+                let leftover_block = current.byte_add(n * BLOCK_SIZE) as BlockPtrMut;
+                (*leftover_block).size = (*current).size - n;
+                (*leftover_block).next = (*current).next;
+
+                (*(current as BlockPtrMut)).size = n;
+
+                // Make the new split block that we 
+                // wont use available to the list
+                // depending on how we found `current`
+                if !prev.is_null() {
+                    // this also removes `current`
+                    // from the free list
+                    (*prev).next = leftover_block as BlockPtr;
+                } else {
+                    self.free_list_head = leftover_block;
+                }
+
+        } else {
+              if !prev.is_null() {
+                    (*prev).next = (*current).next;
+                } else {
+                    self.free_list_head = (*current).next;
+
+                }
+            }
+
+        }
+        unsafe {
+            assert!(current != (*current).next);
+            assert!((*current).size > 0);
+        }
+        Ok(current as *const u8)
+    }
+
+
+
+    pub fn block_dealloc<T>(&mut self, ptr: *const T ) {
+
+        let fb = ptr as BlockPtrMut;
+
+        let mut current = self.free_list_head as BlockPtrMut;
+        let mut prev = null_mut::<Block>();
+
+        unsafe {
+            while !current.is_null() && current < fb {
+                prev = current;
+                current = (*current).next as BlockPtrMut;
+            }
+
+            if !prev.is_null() && (prev.byte_add((*prev).size * BLOCK_SIZE)) as BlockPtr == fb {
+
+                info!("Coalescing backwards from {:#0p} -> {:#0p}", prev, (*prev).next);
+            } else {
+                (*fb).next = self.free_list_head;
+                self.free_list_head = fb as BlockPtr;
+            }
+
+            current = fb;
+
+            while !current.is_null() && current != (*current).next as BlockPtrMut && (current.byte_add((*current).size * BLOCK_SIZE)) == (*current).next as BlockPtrMut {
+                assert!((*current).size != 0);
+                (*current).size += (*(*current).next).size;
+                (*current).next = (*(*current).next).next;
+                info!("Coalescing forwards from {:#0p} -> {:#0p}", current, (*current).next);
+            }
+        }
+        info!("Freed block(s) at {:0p}", ptr);
+
     }
 
     pub fn print_blocklist(&self) {
@@ -70,6 +178,43 @@ impl Allocator {
                 b = (*b).next;
                 }
         }
+    }
+
+    fn pages_for_block_cnt(n: usize) -> usize {
+        // Calculate the number of blocks required
+        let blocks = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+        // Calculate the number of pages required, rounding up
+        (blocks + PAGE_SIZE - 1) / PAGE_SIZE
+    }
+
+    fn blocks_for_byte_sz(n: usize) -> usize {
+
+        (n + (BLOCK_SIZE - 1)) / BLOCK_SIZE
+    }
+    fn align(n: usize) -> usize {
+    (n + core::mem::size_of::<usize>() - 1) & !(core::mem::size_of::<usize>() - 1)
+}
+}
+
+pub struct AllocGuard {
+    allocator: UnsafeCell<Allocator>
+}
+
+impl AllocGuard {
+    pub fn init(&self) -> AllocResult<()> {
+        unsafe {
+            (&mut *self.allocator.get()).init()
+        }
+    }
+}
+
+unsafe impl GlobalAlloc for AllocGuard {
+    unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
+        (&mut *self.allocator.get()).sub_block_alloc(layout.size()).unwrap() as *mut u8
+    }
+    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
+        (&mut *self.allocator.get()).sub_block_dealloc(ptr);
     }
 }
 

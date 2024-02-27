@@ -5,6 +5,7 @@
 use core::arch::asm;
 
 use crate::{cpu::csr::ControlStatusRegister, mem::{allocator::ALLOCATOR, pages}};
+use alloc::{string::String, vec::Vec};
 pub use util::Result;
 
 pub mod asm;
@@ -23,20 +24,25 @@ extern "C" {
 fn kernelvec();
 }
 
+#[macro_use]
+extern crate alloc;
+
 #[no_mangle]
 fn kmain() {
     main_thread_only!({
         info!("Welcome to Walnut!");
         // TODO handle this instead of unwrap
-        main_hart_initialization().unwrap();
+        if let Err(e) = main_hart_initialization() {
+            panic!("Error initializing OS components in main hart: {}", e);
+        }
+    let s = String::from("Hello!");
+    info!("Allocated string at {:p}: {}", &s,s);
+
     });
 
 
-    ControlStatusRegister::Stvec.write(kernelvec as *const u8 as usize);
 
-    unsafe {
-        asm!("unimp");
-    }
+    hart_initialization();
 
 
     loop {
@@ -51,4 +57,9 @@ fn main_hart_initialization() -> Result<()> {
         ALLOCATOR.init()?;
     }
     Ok(())
+}
+
+fn hart_initialization() {
+
+    ControlStatusRegister::Stvec.write(kernelvec as *const u8 as usize);
 }

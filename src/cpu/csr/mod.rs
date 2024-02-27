@@ -40,6 +40,15 @@ pub enum ControlStatusRegister {
     ///  Supervisor Trap Vector Base Address
     Stvec,
 
+    /// Supervisor Trap Value
+    Stval,
+
+    /// Supervisor Cause
+    Scause,
+
+    /// Supervisor Status
+    SStatus,
+
     /// Thread Pointer
     /// NOTE: this is not actually a CSR, but we currently
     /// mostly use it like one, so its here.
@@ -62,6 +71,9 @@ impl ControlStatusRegister {
                 Self::Pmpaddr0 => core::arch::asm!("csrr {0}, pmpaddr0", out(reg) result),
                 Self::Pmpcfg0 => core::arch::asm!("csrr {0}, pmpcfg0", out(reg) result),
                 Self::Stvec => core::arch::asm!("csrr {0}, stvec", out(reg) result),
+                Self::Stval => core::arch::asm!("csrr {0}, stval", out(reg) result),
+                Self::Scause => core::arch::asm!("csrr {0}, scause", out(reg) result),
+                Self::SStatus => core::arch::asm!("csrr {0}, sstatus", out(reg) result),
                 Self::Mhartid => core::arch::asm!("csrr {0}, mhartid", out(reg) result),
                 Self::ThreadPointer => core::arch::asm!("mv {0}, tp", out(reg) result),
             }
@@ -82,6 +94,9 @@ impl ControlStatusRegister {
                 Self::Pmpaddr0 => core::arch::asm!("csrw  pmpaddr0, {}", in(reg) v),
                 Self::Pmpcfg0 => core::arch::asm!("csrw  pmpcfg0, {}", in(reg) v),
                 Self::Stvec => core::arch::asm!("csrw  stvec, {}", in(reg) v),
+                Self::Stval => core::arch::asm!("csrw  stval, {}", in(reg) v),
+                Self::Scause => core::arch::asm!("csrw  scause, {}", in(reg) v),
+                Self::SStatus => core::arch::asm!("csrw  sstatus, {}", in(reg) v),
                 Self::Mhartid => core::arch::asm!("csrw  mhartid, {}", in(reg) v),
                 Self::ThreadPointer => core::arch::asm!("mv  tp, {}", in(reg) v),
             }

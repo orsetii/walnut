@@ -50,8 +50,6 @@ impl PageAllocator {
         info!("Allocated {:08x} bytes. Zeroing {:?}=>{:?}", n * PAGE_SIZE, small_ptr, small_ptr.add((PAGE_SIZE*n)/8));
 
 
-            info!("Total allocation will be {:#016x} bytes", n*PAGE_SIZE);
-    info!("Zeroing from {:#016x} to {:#016x}", small_ptr as usize, small_ptr.add(n * PAGE_SIZE) as usize);
 
         for i in 0..(n * PAGE_SIZE )/8 {
             unsafe {
@@ -59,8 +57,6 @@ impl PageAllocator {
             }
         }
 
-
-        println!("done!");
 
         Some(pg_ptr)
     }
