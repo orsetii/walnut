@@ -4,7 +4,7 @@
 
 use core::arch::asm;
 
-use crate::{cpu::csr::ControlStatusRegister, mem::{allocator::ALLOCATOR, pages}};
+use crate::{cpu::{csr::ControlStatusRegister, save_hartid}, mem::{allocator::ALLOCATOR, pages}};
 use alloc::{string::String, vec::Vec};
 pub use util::Result;
 
@@ -20,7 +20,10 @@ pub mod util;
 
 extern "C" {
     static HEAP_SIZE: usize;
-    static HEAP_START: usize;
+    static HEAP_START: usize; 
+    static KERNEL_STACK_SIZE: usize;
+    static KERNEL_STACK_END: usize;
+    static KERNEL_STACK_START: usize;
     static TEXT_START: usize;
     static TEXT_END: usize;
 fn kernelvec();
@@ -60,6 +63,8 @@ fn main_hart_initialization() -> Result<()> {
         ALLOCATOR.init()?;
         mem::table::initialize();
     }
+    save_hartid();
+    info!("Completed main hart initalization!");
     Ok(())
 }
 

@@ -13,12 +13,12 @@
 _entry:
 	# Index into the STACK0 byte array as
 	# defined in `init/mod.rs`
-	la sp, stack0
+	la sp, __kernel_stack_end 
         li a0, 1024*4
         csrr a1, mhartid
         addi a1, a1, 1
         mul a0, a0, a1
-        add sp, sp, a0
+        sub sp, sp, a0
 	call kinit
 
 spin:

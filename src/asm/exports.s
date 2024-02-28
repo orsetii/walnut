@@ -8,6 +8,18 @@ HEAP_START:
 HEAP_SIZE:
     .dword __heap_size
 
+    .global KERNEL_STACK_START
+KERNEL_STACK_START:
+    .dword __kernel_stack_start
+
+    .global KERNEL_STACK_END
+KERNEL_STACK_END:
+    .dword __kernel_stack_end
+
+    .global KERNEL_STACK_SIZE
+KERNEL_STACK_SIZE:
+    .dword __kernel_stack_size
+
     .global TEXT_START
 TEXT_START:
     .dword stext

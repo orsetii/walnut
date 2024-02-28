@@ -10,7 +10,7 @@
 
 use mycelium_bitfield::bitfield;
 
-use crate::{cpu::csr::ControlStatusRegister, info, mem::allocator::ALLOCATOR, HEAP_SIZE, HEAP_START, TEXT_END, TEXT_START};
+use crate::{cpu::csr::ControlStatusRegister, info, mem::allocator::ALLOCATOR, HEAP_SIZE, HEAP_START, KERNEL_STACK_END, KERNEL_STACK_SIZE, KERNEL_STACK_START, TEXT_END, TEXT_START};
 
 use super::{addr::VirtAddr, pages::{self, PAGE_ALLOCATOR}};
 
@@ -56,11 +56,8 @@ pub fn init_hart() {
 
 
 /// Currently this doesnt work 
-/// we did ID map the the text section 
-/// and I KNOW that it worked as after adding the mapping, and we 
-/// could still exec instructions, but the stack acesses and writes 
-/// failed. Maybe need to designate a region for stack and use that?
-/// Or we find the stack at runtime and map it.
+/// we did ID map the the text section and stack section
+/// All seemed fine, but i get the error of ''
 pub fn initialize() {
 
     unsafe {
@@ -79,6 +76,11 @@ pub fn initialize() {
                     TEXT_END,
                     7 << 1);
 
+        id_map_range(
+                    KERNEL_STACK_START,
+                    KERNEL_STACK_END,
+                    3 << 1);
+
         map(VirtAddr::from_bits(0x1000_0000), 0x1000_0000, 3 << 1, 0);
 
     }
@@ -86,6 +88,10 @@ pub fn initialize() {
         info!("ID Mapped heap from {:#0x} to {:#0x}", 
 				HEAP_START,
                     HEAP_START + ALLOCATOR.alloc_cnt() * 4096,
+        );
+        info!("ID Mapped kernel stack from {:#0x} to {:#0x}", 
+                    KERNEL_STACK_START,
+                    KERNEL_STACK_END
         );
         info!("ID Mapped .text from {:#0x} to {:#0x}. PC at: {}", 
                     TEXT_START,
