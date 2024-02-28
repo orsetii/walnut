@@ -20,6 +20,7 @@ SECTIONS
   }
 
   .text : {
+    PROVIDE(stext = .);
     *(.text .text.*)
     . = ALIGN(0x1000);
     PROVIDE(etext = .);
@@ -49,6 +50,6 @@ SECTIONS
   PROVIDE(__heap_start = .);
   . = 0x88000000;
   PROVIDE(__heap_end = .);
-  PROVIDE(__heap_size = end - __heap_start);
+  PROVIDE(__heap_size = __heap_end - __heap_start);
   PROVIDE(end = .);
 }

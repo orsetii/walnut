@@ -25,8 +25,8 @@ pub static mut ALLOCATOR: AllocGuard = AllocGuard {
 
 #[derive(Debug)]
 pub struct Allocator {
-    block_cnt: usize,
-    free_list_head: BlockPtr,
+    pub block_cnt: usize,
+    pub free_list_head: BlockPtr,
 }
 
 impl Allocator {
@@ -205,6 +205,11 @@ impl AllocGuard {
     pub fn init(&self) -> AllocResult<()> {
         unsafe {
             (&mut *self.allocator.get()).init()
+        }
+    }
+    pub fn alloc_cnt(&self) -> usize {
+        unsafe {
+            (&mut *self.allocator.get()).block_cnt
         }
     }
 }

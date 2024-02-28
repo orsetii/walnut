@@ -21,6 +21,8 @@ pub mod util;
 extern "C" {
     static HEAP_SIZE: usize;
     static HEAP_START: usize;
+    static TEXT_START: usize;
+    static TEXT_END: usize;
 fn kernelvec();
 }
 
@@ -35,6 +37,7 @@ fn kmain() {
         if let Err(e) = main_hart_initialization() {
             panic!("Error initializing OS components in main hart: {}", e);
         }
+
     let s = String::from("Hello!");
     info!("Allocated string at {:p}: {}", &s,s);
 
@@ -55,6 +58,7 @@ fn main_hart_initialization() -> Result<()> {
     unsafe {
         pages::PAGE_ALLOCATOR.init();
         ALLOCATOR.init()?;
+        mem::table::initialize();
     }
     Ok(())
 }

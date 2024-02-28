@@ -47,7 +47,6 @@ impl PageAllocator {
         let small_ptr = pg_ptr as *mut u64;
         // cast the page pointer as a u64 so 
         // we can can perform the zeroing faster
-        info!("Allocated {:08x} bytes. Zeroing {:?}=>{:?}", n * PAGE_SIZE, small_ptr, small_ptr.add((PAGE_SIZE*n)/8));
 
 
 
@@ -67,7 +66,6 @@ impl PageAllocator {
         let node = unsafe { HEAP_START } as *mut PageListNode;
         for i in 0..page_count() - n {
             if unsafe { !node_is_taken(node.add(i)) } && self.has_contig_space(node, n, i) {
-                crate::info!("Found contiguous space for {} page allocation at {:#0x}", n, self.alloc_start + (i * PAGE_SIZE));
                 for pg_idx in i..i+n {
                     unsafe {
                         (*node.add(pg_idx)).set(PageListNode::TAKEN, true);
@@ -137,7 +135,7 @@ fn page_count() -> usize {
 }
 
 /// Align a pointer to `2^order` bytes
-fn align(ptr: usize, order: usize) -> usize {
+pub fn align(ptr: usize, order: usize) -> usize {
     let o = (1 << order) - 1;
     (ptr + o) & !o
 }
