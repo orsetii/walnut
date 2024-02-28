@@ -5,7 +5,7 @@
 use core::arch::asm;
 
 use crate::{cpu::{csr::ControlStatusRegister, save_hartid}, mem::{allocator::ALLOCATOR, pages}};
-use alloc::{string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 pub use util::Result;
 
 pub mod asm;
@@ -40,10 +40,6 @@ fn kmain() {
         if let Err(e) = main_hart_initialization() {
             panic!("Error initializing OS components in main hart: {}", e);
         }
-
-    let s = String::from("Hello!");
-    info!("Allocated string at {:p}: {}", &s,s);
-
     });
 
 
@@ -61,10 +57,8 @@ fn main_hart_initialization() -> Result<()> {
     unsafe {
         pages::PAGE_ALLOCATOR.init();
         ALLOCATOR.init()?;
-        mem::table::initialize();
+        //mem::table::initialize();
     }
-    save_hartid();
-    info!("Completed main hart initalization!");
     Ok(())
 }
 

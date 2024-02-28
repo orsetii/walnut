@@ -57,7 +57,9 @@ pub fn init_hart() {
 
 /// Currently this doesnt work 
 /// we did ID map the the text section and stack section
-/// All seemed fine, but i get the error of ''
+/// All seemed fine, but i we attempt to 
+/// print, we error on some operations on `a0`
+/// so we disabled it
 pub fn initialize() {
 
     unsafe {

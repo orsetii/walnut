@@ -5,13 +5,14 @@ use uart_16550::SerialPort;
 use crate::sync::spinlock::{OnceCell, SpinLock};
 
 pub static mut SERIAL: OnceCell<SpinLock<SerialPort>> = OnceCell::new();
+pub static mut UART_DONE: bool = false;
 
 #[macro_export]
 macro_rules! print {
      	($($args:tt)+) => ({
                 use core::fmt::Write;
                 unsafe {
-                        if $crate::cpu::util::my_hart() != 0 {
+                        if !$crate::drivers::UART_DONE && $crate::cpu::util::my_hart() != 0 {
                                 while !$crate::drivers::SERIAL.is_initialized() {
                                 core::hint::spin_loop();
                                 }
@@ -20,6 +21,7 @@ macro_rules! print {
                         $crate::sync::spinlock::SpinLock::new(
                                 $crate::drivers::uart_16550::SerialPort::new(0x1000_0000)
                         )).lock(), $($args)+);
+                        $crate::drivers::UART_DONE = true;
                 }
  	});
  }
